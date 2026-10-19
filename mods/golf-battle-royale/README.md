@@ -1,21 +1,28 @@
-# Golf Battle Royale mod workspace
+# Wii Sports Golf Battle Royale mod workspace
 
-This directory holds experimental Golf Battle Royale code separately from the OGWS game sources.
+This workspace is for a rules-changing mod of the original Wii Sports Golf mode. The intended design is to make the existing Golf environment more open/free-roam and add Battle Royale match rules while preserving the game's original assets and visual identity.
 
-## Current state
+## Non-negotiable design constraints
 
-A standalone rules prototype exists in `source/GolfBattleRoyale.h` and `source/GolfBattleRoyale.cpp`. It currently tracks up to 16 player slots, lobby and active-match phases, eliminations, a last-player-standing winner, and simple item inventory slots.
+- Use existing Wii Sports assets, scenery, equipment, animations, and effects only.
+- Do not introduce invented weapons, pickups, buildings, characters, or visual effects.
+- The new content should be game rules and behavior, not a replacement art set.
+- Keep changes reversible and separate from the clean OGWS source.
+- Target Dolphin first, then assess Riivolution on real Wii hardware.
 
-Basic host-compiler tests are in `tests/test_match_manager.cpp`.
+## Current implementation status
 
-**This is not yet a playable Wii Sports mod.** The prototype is not connected to `RPGolScene`, the original Golf player/session systems, the game build, or Dolphin/Riivolution. Item types are only inventory identifiers; their in-game effects are not implemented. The bowling-themed lobby, course integration, zone rules, HUD, and Wii package are also not implemented.
+A standalone rules prototype exists in `source/GolfBattleRoyale.h` and `source/GolfBattleRoyale.cpp`. It supports up to four player slots, a lobby/active/finished state, player health, damage, eliminations, and a last-player-standing winner.
 
-## Development order
+**This is not yet a playable Wii Sports mod.** The rules prototype is not connected to `RPGolScene`, the original player/session systems, the game's combat/collision code, camera, map boundaries, or build pipeline. Free-roam behavior, out-of-bounds handling, HUD, and real in-game damage are not implemented. It adds no custom items or game assets.
 
-1. Identify the actual Golf scene/player/session integration points in the decompilation.
-2. Connect the rules manager to the game using verified interfaces.
-3. Build using the repository's supported toolchain and legally obtained matching game dump.
-4. Test each change in Dolphin.
-5. Create a Riivolution package only after there are real, tested replacement files.
+## Required next steps
 
-Do not describe the mod as playable until the integrated build launches and its gameplay is verified.
+1. Verify the exact US Rev 1 game dump locally and establish a clean build.
+2. Trace the original Golf scene, player, camera, collision, and course-boundary code using the repository and matching local dump.
+3. Determine whether the existing Golf map geometry can be explored beyond the normal course boundaries without adding new assets.
+4. Identify existing Wii Sports actions/equipment that can be reused for player-versus-player interactions.
+5. Connect the match rules to verified in-game events and existing player state.
+6. Build and test each change in Dolphin before packaging a Riivolution patch.
+
+Do not describe the mod as playable until the integrated build launches and its gameplay has been verified. A rules-only host test does not validate Wii compatibility.
