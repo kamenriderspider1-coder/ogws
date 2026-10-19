@@ -1,67 +1,86 @@
-# Wii Sports Golf Battle Royale: Mod Plan
+# Wii Sports Golf Battle Royale: Original-Assets-Only Plan
 
-This document tracks the planned Golf Battle Royale fan mod for the US Wii Sports Revision 1 target. It is a design and implementation roadmap, not a claim that gameplay changes are already implemented.
+## Goal
 
-## Goals
+Modify the original US Wii Sports Golf mode into a Battle Royale-style free-roam experience while retaining the original game's assets and presentation. The mod may change gameplay rules, movement constraints, collision/boundary behavior, camera behavior, damage/elimination, and match flow. It must not add objects, weapons, scenery, characters, or effects that were not already present in Wii Sports.
 
-- Keep the original game and its assets separate from mod-created files.
-- Develop and test in small, reversible stages.
-- Target Dolphin first, then evaluate whether the same patch can be used through Riivolution on real Wii hardware.
-- Use only a legally obtained game dump for local builds and testing.
+## Target
 
-## Intended game mode
+- Game: Wii Sports USA Rev 1
+- Expected dump SHA-1: `8bb422971b88b5551a37de98db69557df7b46637`
+- First runtime target: Dolphin
+- Potential later target: real Wii through Riivolution, after testing
 
-1. **Pre-game area:** a bowling-themed lobby where players can wait and test controls.
-2. **Golf match:** players compete on a golf course with a shrinking playable area or other elimination rules.
-3. **Items:** optional pickups that create temporary advantages. Item effects must be implemented in code and tested individually.
-4. **Victory condition:** the last player or team remaining wins.
+## Design constraints
 
-These are design goals. They are not present in the game yet.
+- Reuse the original Golf environment and existing Wii Sports assets.
+- Free-roam means investigating and enabling movement through existing map areas, not constructing new map geometry.
+- Reuse existing player actions, clubs, golf balls, animations, and effects where possible.
+- Any Battle Royale-only rules must be code/state changes, not new pickups or invented equipment.
+- Do not assume hidden areas are collision-ready or traversable. Inspect collision and boundary handling first.
+- Keep the original game build and mod changes separate and reversible.
 
-## Development stages
+## Implementation sequence
 
-### Stage 1: Verify the development target
-- Confirm the local dump is US Revision 1 (SHA-1: `8bb422971b88b5551a37de98db69557df7b46637`).
-- Follow the repository's clean-room build instructions.
-- Confirm a clean, unmodified build succeeds before changing gameplay.
+### Stage 1: Validate the target and build
+- Confirm the local dump is the supported USA Rev 1 target.
+- Build the untouched project successfully before modifying gameplay.
+- Record compiler/toolchain and Dolphin versions.
 
-### Stage 2: Map the existing golf flow
-- Identify golf scene/state entry points and player/session handling in the decompilation.
-- Document relevant functions and data structures before editing them.
-- Avoid changing SDK or system-library code.
+### Stage 2: Map the original Golf runtime
+- Trace `RPGolScene` lifecycle, player manager, simulation manager, map/field manager, camera, ball, and collision paths.
+- Locate the actual source and matching disassembly for boundaries, player control, collision, and scene transitions.
+- Document verified entry points; do not guess based on class names alone.
 
-### Stage 3: Prototype one small gameplay change
-- Choose a low-risk, visible change with a clear pass/fail test.
-- Build and run it in Dolphin.
-- Keep the prototype separate from the eventual item and lobby systems.
+### Stage 3: Free-roam feasibility
+- Inspect original stage geometry and collision data.
+- Determine which existing areas are reachable and what currently blocks players.
+- Change only the boundary/collision/camera logic needed to explore existing geometry.
+- Preserve existing geometry and assets; do not generate new terrain or props.
+- Add safeguards against falling through the map or leaving the valid world.
 
-### Stage 4: Implement the match rules
-- Add a match-state model for waiting, active play, eliminated players, and victory.
-- Connect the state model to existing golf flow only after the relevant code paths are understood.
-- Add and test one item at a time.
+### Stage 4: Battle Royale rules
+- Connect a small match-state manager to actual game events.
+- Use the game's existing player slots and equipment limits.
+- Reuse original attack or swing animations and collision systems where feasible.
+- Implement health/damage/elimination only after identifying a valid way to detect hits.
+- Handle player falls or leaving the playable world using verified game state.
+- Determine a last-player-standing winner and return safely to a results/state screen.
 
-### Stage 5: Riivolution packaging
-- Create an XML patch definition only after actual patchable files and their target paths are known.
-- Verify the XML loads and that the patch points to real mod files.
-- Test the package in Dolphin's Riivolution support before calling it functional.
+### Stage 5: In-game UI and feedback
+- Prefer existing UI, fonts, sounds, and visual effects.
+- Do not introduce new art or sound effects.
+- If an interface element cannot be built from existing resources, keep it minimal and document the dependency.
+
+### Stage 6: Build and test
+- Build with the repository's supported toolchain and the matching legally obtained dump.
+- Test in Dolphin after every small change.
+- Verify normal Golf still launches when the mod is disabled.
+- Create a Riivolution package only after actual replacement files exist and work.
 
 ## Current status
 
-- [x] Created an isolated `golf-battle-royale` branch.
-- [ ] Verify build environment and local game dump.
-- [ ] Identify golf scene/state code.
-- [ ] Implement and test a first gameplay prototype.
-- [ ] Create a Riivolution package for actual implemented changes.
+- [x] Isolated mod workspace and branch exist.
+- [x] Standalone rules prototype supports up to four player slots, health, damage, elimination, and winner tracking.
+- [ ] Verify matching local game dump and clean build.
+- [ ] Identify actual Golf runtime integration points.
+- [ ] Enable safe free-roam through existing map geometry.
+- [ ] Connect combat/damage to original game actions and collision.
+- [ ] Integrate match start, elimination, and victory into the game.
+- [ ] Build and test in Dolphin.
+- [ ] Package and test through Riivolution if feasible.
 
-## Important technical limitation
+## Important limitation
 
-OGWS is a decompilation project and does not include retail game assets or executable code. A Riivolution XML file by itself cannot add a battle royale mode. The mode requires implemented code/data changes, a successful build, and a tested patch package.
+The OGWS repository is a decompilation project and does not include the retail game's assets or complete executable code. The standalone rules prototype is not a playable mod. Actual game integration requires the matching game dump, verified runtime code paths, a supported toolchain, and testing.
 
-## Test checklist
+## Test log template
 
-For every change, record:
-- What changed
+For each change record:
+- Change and files touched
 - Build command and result
-- Dolphin version and game revision
-- Steps to reproduce
-- Whether the original game still launches when the mod is disabled
+- Game revision and dump hash
+- Dolphin version
+- Reproduction steps
+- Expected and observed behavior
+- Whether the game still boots with the mod disabled
