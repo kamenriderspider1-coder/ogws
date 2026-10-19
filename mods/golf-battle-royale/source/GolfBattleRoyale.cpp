@@ -12,75 +12,76 @@ void MatchManager::Reset() {
     mWinnerIndex = -1;
     for (i = 0; i < MaxPlayers; ++i) {
         mPlayers[i].status = Player_Inactive;
-        mPlayers[i].item = Item_None;
+        mPlayers[i].health = StartingHealth;
         mPlayers[i].score = 0;
     }
 }
 
 bool MatchManager::AddPlayer(int playerIndex) {
-    if (mPhase != Phase_Lobby || playerIndex < 0 || playerIndex >= MaxPlayers) {
+    if (mPhase != Phase_Lobby || playerIndex < 0 ||
+        playerIndex >= MaxPlayers ||
+        mPlayers[playerIndex].status != Player_Inactive) {
         return false;
     }
     mPlayers[playerIndex].status = Player_Alive;
-    mPlayers[playerIndex].item = Item_None;
+    mPlayers[playerIndex].health = StartingHealth;
     mPlayers[playerIndex].score = 0;
     return true;
 }
 
 bool MatchManager::StartMatch() {
-    int activeCount = GetActivePlayerCount();
-    if (mPhase != Phase_Lobby || activeCount < 2) {
+    if (mPhase != Phase_Lobby || GetActivePlayerCount() < 2) {
         return false;
     }
     mPhase = Phase_Active;
     return true;
 }
 
+bool MatchManager::DamagePlayer(int playerIndex, int damage) {
+    if (mPhase != Phase_Active || playerIndex < 0 ||
+        playerIndex >= MaxPlayers || damage <= 0 ||
+        mPlayers[playerIndex].status != Player_Alive) {
+        return false;
+    }
+
+    mPlayers[playerIndex].health -= damage;
+    if (mPlayers[playerIndex].health <= 0) {
+        mPlayers[playerIndex].health = 0;
+        mPlayers[playerIndex].status = Player_Eliminated;
+        FinishIfOnePlayerRemains();
+    }
+    return true;
+}
+
 bool MatchManager::EliminatePlayer(int playerIndex) {
-    if (mPhase != Phase_Active || playerIndex < 0 || playerIndex >= MaxPlayers) {
-        return false;
-    }
-    if (mPlayers[playerIndex].status != Player_Alive) {
+    if (mPhase != Phase_Active || playerIndex < 0 ||
+        playerIndex >= MaxPlayers ||
+        mPlayers[playerIndex].status != Player_Alive) {
         return false;
     }
 
+    mPlayers[playerIndex].health = 0;
     mPlayers[playerIndex].status = Player_Eliminated;
-    mPlayers[playerIndex].item = Item_None;
+    FinishIfOnePlayerRemains();
+    return true;
+}
 
-    if (GetActivePlayerCount() == 1) {
-        int i;
-        for (i = 0; i < MaxPlayers; ++i) {
-            if (mPlayers[i].status == Player_Alive) {
-                mWinnerIndex = i;
-                break;
+void MatchManager::FinishIfOnePlayerRemains() {
+    int activeCount = GetActivePlayerCount();
+    int i;
+
+    if (activeCount <= 1) {
+        mWinnerIndex = -1;
+        if (activeCount == 1) {
+            for (i = 0; i < MaxPlayers; ++i) {
+                if (mPlayers[i].status == Player_Alive) {
+                    mWinnerIndex = i;
+                    break;
+                }
             }
         }
         mPhase = Phase_Finished;
-    } else if (GetActivePlayerCount() == 0) {
-        mWinnerIndex = -1;
-        mPhase = Phase_Finished;
     }
-    return true;
-}
-
-bool MatchManager::GiveItem(int playerIndex, ItemType item) {
-    if (mPhase != Phase_Active || playerIndex < 0 || playerIndex >= MaxPlayers ||
-        item == Item_None || mPlayers[playerIndex].status != Player_Alive) {
-        return false;
-    }
-    mPlayers[playerIndex].item = item;
-    return true;
-}
-
-bool MatchManager::ConsumeItem(int playerIndex, ItemType* outItem) {
-    if (mPhase != Phase_Active || playerIndex < 0 || playerIndex >= MaxPlayers ||
-        outItem == 0 || mPlayers[playerIndex].status != Player_Alive ||
-        mPlayers[playerIndex].item == Item_None) {
-        return false;
-    }
-    *outItem = mPlayers[playerIndex].item;
-    mPlayers[playerIndex].item = Item_None;
-    return true;
 }
 
 MatchPhase MatchManager::GetPhase() const {
@@ -92,6 +93,13 @@ PlayerStatus MatchManager::GetPlayerStatus(int playerIndex) const {
         return Player_Inactive;
     }
     return mPlayers[playerIndex].status;
+}
+
+int MatchManager::GetPlayerHealth(int playerIndex) const {
+    if (playerIndex < 0 || playerIndex >= MaxPlayers) {
+        return 0;
+    }
+    return mPlayers[playerIndex].health;
 }
 
 int MatchManager::GetActivePlayerCount() const {
